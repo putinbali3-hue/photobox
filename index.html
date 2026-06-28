@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoBox - Selfie & Photo Booth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #ff6b9d;
+            --secondary: #c44569;
+            --accent: #ffa502;
+            --success: #26de81;
+            --light-bg: #f5f7fa;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-bottom: 5px solid var(--accent);
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 1em;
+            opacity: 0.95;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .camera-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .camera-box {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        #video, #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        #video {
+            transform: scaleX(-1);
+        }
+
+        .frame-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            border: 15px solid transparent;
+        }
+
+        .frame-border.classic {
+            border-color: #8B4513;
+            box-shadow: inset 0 0 0 3px #D2691E;
+        }
+
+        .frame-border.rounded {
+            border-radius: 50px;
+            border-color: #FFD700;
+        }
+
+        .frame-border.polaroid {
+            border: 20px solid white;
+            border-bottom: 50px solid white;
+        }
+
+        .frame-border.rainbow {
+            border: 15px solid;
+            border-color: red orange yellow green blue;
+        }
+
+        .frame-border.neon {
+            border-color: #00ff00;
+            box-shadow: 0 0 30px #00ff00, inset 0 0 30px rgba(0, 255, 0, 0.2);
+        }
+
+        .controls {
+            background: var(--light-bg);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--primary);
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 2px solid var(--primary);
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+
+        .btn-capture {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-capture:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 157, 0.6);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #20b76b;
+        }
+
+        .customize-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .customize-section::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .customize-section::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .card {
+            background: var(--light-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .card h3 {
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .option-btn {
+            padding: 10px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .option-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .emoji-btn {
+            font-size: 1.8em;
+            padding: 10px;
+            border: 2px solid transparent;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .emoji-btn:hover {
+            transform: scale(1.15) rotate(10deg);
+            border-color: var(--primary);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .text-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(255, 107, 157, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        .close-btn:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-4 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 PhotoBox Studio</h1>
+            <p>Ambil foto, customize, dan cetak instan!</p>
+        </div>
+
+        <div class="content">
+            <!-- Left: Camera -->
+            <div class="camera-section">
+                <div class="camera-box">
+                    <video id="video" autoplay playsinline muted></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    <div class="frame-border classic" id="frameBorder"></div>
+                </div>
+
+                <div class="controls">
+                    <div class="checkbox-group">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="liveMode" checked>
+                            <span>🎬 Live Preview</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="mirrorMode" checked>
+                            <span>🪞 Mirror</span>
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label>🔍 Zoom: <span id="zoomValue">100%</span></label>
+                        <input type="range" id="zoomSlider" min="80" max="200" value="100">
+                    </div>
+
+                    <div class="button-group">
+                        <button id="captureBtn" class="btn btn-capture">📸 Ambil Foto</button>
+                        <button id="retakeBtn" class="btn btn-secondary" style="display: none;">🔄 Ulangi</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Customize -->
+            <div class="customize-section">
+                <!-- Frame -->
+                <div class="card">
+                    <h3>🖼️ Bingkai</h3>
+                    <div class="grid-3">
+                        <button class="option-btn active" onclick="setFrame('classic')">Classic</button>
+                        <button class="option-btn" onclick="setFrame('rounded')">Rounded</button>
+                        <button class="option-btn" onclick="setFrame('polaroid')">Polaroid</button>
+                        <button class="option-btn" onclick="setFrame('rainbow')">Rainbow</button>
+                        <button class="option-btn" onclick="setFrame('neon')">Neon</button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card">
+                    <h3>🎨 Filter</h3>
+                    <div class="grid-4">
+                        <button class="option-btn active" data-filter="normal" onclick="setFilter(this)">Normal</button>
+                        <button class="option-btn" data-filter="bw" onclick="setFilter(this)">B&W</button>
+                        <button class="option-btn" data-filter="sepia" onclick="setFilter(this)">Sepia</button>
+                        <button class="option-btn" data-filter="cool" onclick="setFilter(this)">Cool</button>
+                        <button class="option-btn" data-filter="warm" onclick="setFilter(this)">Warm</button>
+                        <button class="option-btn" data-filter="bright" onclick="setFilter(this)">Bright</button>
+                        <button class="option-btn" data-filter="dark" onclick="setFilter(this)">Dark</button>
+                        <button class="option-btn" data-filter="retro" onclick="setFilter(this)">Retro</button>
+                    </div>
+                </div>
+
+                <!-- Adjustments -->
+                <div class="card">
+                    <h3>⚙️ Pengaturan</h3>
+                    <div class="control-group">
+                        <label>Brightness</label>
+                        <input type="range" id="brightness" min="50" max="150" value="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Contrast</label>
+                        <input type="range" id="contrast" min="50" max="150" value="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Saturasi</label>
+                        <input type="range" id="saturation" min="0" max="200" value="100">
+                    </div>
+                </div>
+
+                <!-- Stickers -->
+                <div class="card">
+                    <h3>✨ Stiker</h3>
+                    <div class="grid-4">
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">😎</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">🎉</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">❤️</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">⭐</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">🌈</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">👑</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">🎭</button>
+                        <button class="emoji-btn" onclick="alert('Stiker ditambahkan!')">🦋</button>
+                    </div>
+                </div>
+
+                <!-- Text -->
+                <div class="card">
+                    <h3>💬 Teks</h3>
+                    <input type="text" id="textInput" class="text-input" placeholder="Ketik teks...">
+                    <button class="btn btn-secondary" onclick="alert('Teks ditambahkan!')" style="width: 100%;">Tambah</button>
+                </div>
+
+                <!-- Download -->
+                <div class="card">
+                    <h3>💾 Unduh</h3>
+                    <div class="button-group">
+                        <button id="downloadBtn" class="btn btn-success" style="display: none;" onclick="downloadPhoto()">⬇️ Download</button>
+                        <button id="printBtn" class="btn btn-secondary" style="display: none;" onclick="printPhoto()">🖨️ Cetak</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const frameBorder = document.getElementById('frameBorder');
+
+        let currentFilter = 'normal';
+        let currentFrame = 'classic';
+        let photoTaken = false;
+        let currentPhoto = null;
+
+        // Initialize camera
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' },
+                    audio: false
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                alert('Tidak bisa mengakses kamera!');
+                console.error(err);
+            }
+        }
+
+        // Start live preview
+        function startLivePreview() {
+            function render() {
+                if (!photoTaken && document.getElementById('liveMode').checked) {
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+
+                    ctx.drawImage(video, 0, 0);
+
+                    if (document.getElementById('mirrorMode').checked) {
+                        ctx.save();
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(video, 0, 0);
+                        ctx.restore();
+                    }
+
+                    applyFilters();
+
+                    canvas.style.display = 'block';
+                    video.style.display = 'none';
+                } else if (!photoTaken) {
+                    video.style.display = 'block';
+                    canvas.style.display = 'none';
+                }
+
+                requestAnimationFrame(render);
+            }
+            render();
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const brightness = parseInt(document.getElementById('brightness').value) || 100;
+            const contrast = parseInt(document.getElementById('contrast').value) || 100;
+            const saturation = parseInt(document.getElementById('saturation').value) || 100;
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                // Apply filter
+                let filtered = applyFilterEffect(r, g, b, currentFilter);
+                r = filtered.r;
+                g = filtered.g;
+                b = filtered.b;
+
+                // Brightness
+                r = Math.min(255, r * (brightness / 100));
+                g = Math.min(255, g * (brightness / 100));
+                b = Math.min(255, b * (brightness / 100));
+
+                // Contrast
+                r = (r - 128) * (contrast / 100) + 128;
+                g = (g - 128) * (contrast / 100) + 128;
+                b = (b - 128) * (contrast / 100) + 128;
+
+                // Saturation
+                const gray = r * 0.299 + g * 0.587 + b * 0.114;
+                r = gray + (r - gray) * (saturation / 100);
+                g = gray + (g - gray) * (saturation / 100);
+                b = gray + (b - gray) * (saturation / 100);
+
+                data[i] = Math.max(0, Math.min(255, r));
+                data[i + 1] = Math.max(0, Math.min(255, g));
+                data[i + 2] = Math.max(0, Math.min(255, b));
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Filter effects
+        function applyFilterEffect(r, g, b, filter) {
+            switch(filter) {
+                case 'bw':
+                    const gray = r * 0.299 + g * 0.587 + b * 0.114;
+                    return { r: gray, g: gray, b: gray };
+
+                case 'sepia':
+                    return {
+                        r: Math.min(255, r * 0.393 + g * 0.769 + b * 0.189),
+                        g: Math.min(255, r * 0.349 + g * 0.686 + b * 0.168),
+                        b: Math.min(255, r * 0.272 + g * 0.534 + b * 0.131)
+                    };
+
+                case 'cool':
+                    return {
+                        r: r * 0.8,
+                        g: g * 1.1,
+                        b: Math.min(255, b * 1.3)
+                    };
+
+                case 'warm':
+                    return {
+                        r: Math.min(255, r * 1.3),
+                        g: g * 1.05,
+                        b: Math.max(0, b * 0.7)
+                    };
+
+                case 'bright':
+                    return {
+                        r: Math.min(255, r * 1.3),
+                        g: Math.min(255, g * 1.3),
+                        b: Math.min(255, b * 1.3)
+                    };
+
+                case 'dark':
+                    return {
+                        r: r * 0.7,
+                        g: g * 0.7,
+                        b: b * 0.7
+                    };
+
+                case 'retro':
+                    return {
+                        r: Math.min(255, r * 1.2),
+                        g: g * 1.1,
+                        b: Math.max(0, b * 0.8)
+                    };
+
+                default:
+                    return { r, g, b };
+            }
+        }
+
+        // Set frame
+        function setFrame(frame) {
+            currentFrame = frame;
+            frameBorder.className = `frame-border ${frame}`;
+            document.querySelectorAll('.card:first-child .option-btn').forEach((btn, i) => {
+                btn.classList.remove('active');
+                if (['classic', 'rounded', 'polaroid', 'rainbow', 'neon'][i] === frame) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Set filter
+        function setFilter(btn) {
+            document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.getAttribute('data-filter');
+        }
+
+        // Capture photo
+        document.getElementById('captureBtn').addEventListener('click', () => {
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+
+            ctx.drawImage(video, 0, 0);
+
+            if (document.getElementById('mirrorMode').checked) {
+                ctx.save();
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0);
+                ctx.restore();
+            }
+
+            applyFilters();
+
+            currentPhoto = canvas.toDataURL('image/png');
+            photoTaken = true;
+
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'block';
+            document.getElementById('downloadBtn').style.display = 'block';
+            document.getElementById('printBtn').style.display = 'block';
+
+            playShutterSound();
+        });
+
+        // Retake
+        document.getElementById('retakeBtn').addEventListener('click', () => {
+            photoTaken = false;
+            document.getElementById('captureBtn').style.display = 'block';
+            document.getElementById('retakeBtn').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'none';
+            document.getElementById('printBtn').style.display = 'none';
+        });
+
+        // Download
+        function downloadPhoto() {
+            const link = document.createElement('a');
+            link.href = currentPhoto;
+            link.download = `photobox-${Date.now()}.png`;
+            link.click();
+        }
+
+        // Print
+        function printPhoto() {
+            const w = window.open();
+            w.document.write(`<img src="${currentPhoto}" style="max-width: 100%;">`);
+            w.print();
+        }
+
+        // Zoom
+        document.getElementById('zoomSlider').addEventListener('input', (e) => {
+            document.getElementById('zoomValue').textContent = e.target.value + '%';
+        });
+
+        // Shutter sound
+        function playShutterSound() {
+            const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx2.createOscillator();
+            const gain = ctx2.createGain();
+            osc.connect(gain);
+            gain.connect(ctx2.destination);
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.3, ctx2.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx2.currentTime + 0.1);
+            osc.start(ctx2.currentTime);
+            osc.stop(ctx2.currentTime + 0.1);
+        }
+
+        // Initialize
+        initCamera();
+        startLivePreview();
+    </script>
+</body>
+</html>
